@@ -13,114 +13,134 @@ import axios from "axios";
 // eslint-disable-next-line import/no-unresolved
 import { API_SERVER } from "@env";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 const Signup = () => {
-  const [user, setUser] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
+  const [user, setUser] = useState({ name: "", email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [show, setShow] = useState(false);
 
-  const validateName = (name) => {
-    return name.length > 3;
-  };
-  const validatePassword = (password) => {
-    return password.length > 3;
-  };
-
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const validateName = (n) => n.length > 2;
+  const validatePassword = (p) => p.length > 3;
+  const validateEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
   const handleRegister = async () => {
+    if (!user.name || !user.email || !user.password)
+      return Toast.show({ type: "info", text1: "Fill all fields" });
+    if (!validateName(user.name) || !validateEmail(user.email) || !validatePassword(user.password))
+      return Toast.show({ type: "info", text1: "Check field formats", text2: "Name >2 chars, valid email, password >3 chars" });
+
     try {
-      if (user.name === "" || user.email === "" || user.password === "")
-        return Toast.show({
-          type: "info",
-          text1: "Invalid Data",
-          text2: "Fill all the fields",
-        });
-
-      const validName = validateName(user.name);
-      const validEmail = validateEmail(user.email);
-      const validPassword = validatePassword(user.password);
-
-      if (!validEmail || !validPassword || !validName)
-        return Toast.show({
-          type: "info",
-          text1: "Invalid Data",
-          text2: "Invalid Format",
-        });
-
+      setLoading(true);
       const res = await axios.post(`${API_SERVER}/user/register`, user);
-      Toast.show({
-        type: "success",
-        text1: res.data.message,
-        text2: "User Registered",
-      });
-      setUser({
-        name: "",
-        email: "",
-        password: "",
-      });
-      return router.replace("login");
+      Toast.show({ type: "success", text1: res.data.message || "Registered!", text2: "Please log in" });
+      setUser({ name: "", email: "", password: "" });
+      router.replace("/login");
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: error?.response?.data?.message || "Something went wrong",
-        text2: "Something Went Wrong",
+        text1: error?.response?.data?.message || "Registration failed",
+        text2: "Try a different email",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-200">
-      <Toast />
+    <SafeAreaView className="flex-1" style={{ backgroundColor: "#111827" }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
-        <View className="flex flex-1 items-center justify-center">
-          <Text className="mb-10 text-2xl font-semibold text-black">
-            Signup
-          </Text>
-          <View className="flex w-10/12 gap-y-2 rounded-xl border bg-white p-5">
-            <Text>Name</Text>
-            <TextInput
-              value={user.name}
-              onChangeText={(text) => setUser({ ...user, name: text })}
-              className="rounded-xl border p-2"
-              maxLength={15}
-            />
-            <Text>Email</Text>
-            <TextInput
-              value={user.email}
-              keyboardType="email-address"
-              onChangeText={(text) => setUser({ ...user, email: text })}
-              className="rounded-xl border p-2"
-            />
-            <Text>Password</Text>
-            <TextInput
-              value={user.password}
-              onChangeText={(text) => setUser({ ...user, password: text })}
-              className="rounded-xl border p-2"
-            />
-            <TouchableOpacity
-              className="mx-auto mt-3 flex w-6/12 rounded-lg bg-blue-700 p-2"
-              onPress={handleRegister}
-            >
-              <Text className="text-center text-lg text-white">Register</Text>
-            </TouchableOpacity>
-            <View className="flex flex-row items-center justify-center">
-              <Text>Already have an account?</Text>
-              <Text
-                className="p-2 pl-2 text-lg text-blue-600 underline"
-                onPress={() => router.replace("login")}
-              >
-                Login
+        <View className="flex flex-1 items-center justify-center px-6">
+          {/* Heading */}
+          <View className="mb-8 items-center">
+            <Text className="text-4xl font-bold text-white mb-1">Create Account</Text>
+            <Text style={{ color: "#9CA3AF" }} className="text-sm">
+              Join MechPro — your spare parts store
+            </Text>
+          </View>
+
+          {/* Card */}
+          <View
+            className="w-full rounded-2xl p-6 gap-y-4"
+            style={{ backgroundColor: "#1F2937" }}
+          >
+            {/* Name */}
+            <View>
+              <Text style={{ color: "#9CA3AF" }} className="text-xs mb-2 font-semibold uppercase">
+                Full Name
               </Text>
+              <TextInput
+                value={user.name}
+                onChangeText={(t) => setUser({ ...user, name: t })}
+                placeholder="John Doe"
+                placeholderTextColor="#6B7280"
+                maxLength={30}
+                className="rounded-xl px-4 py-3 text-white"
+                style={{ backgroundColor: "#374151" }}
+              />
+            </View>
+
+            {/* Email */}
+            <View>
+              <Text style={{ color: "#9CA3AF" }} className="text-xs mb-2 font-semibold uppercase">
+                Email
+              </Text>
+              <TextInput
+                value={user.email}
+                onChangeText={(t) => setUser({ ...user, email: t })}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholder="you@example.com"
+                placeholderTextColor="#6B7280"
+                className="rounded-xl px-4 py-3 text-white"
+                style={{ backgroundColor: "#374151" }}
+              />
+            </View>
+
+            {/* Password */}
+            <View>
+              <Text style={{ color: "#9CA3AF" }} className="text-xs mb-2 font-semibold uppercase">
+                Password
+              </Text>
+              <View className="flex-row items-center rounded-xl px-4" style={{ backgroundColor: "#374151" }}>
+                <TextInput
+                  value={user.password}
+                  onChangeText={(t) => setUser({ ...user, password: t })}
+                  secureTextEntry={!show}
+                  placeholder="••••••••"
+                  placeholderTextColor="#6B7280"
+                  className="flex-1 py-3 text-white"
+                />
+                <TouchableOpacity onPress={() => setShow(!show)}>
+                  <Ionicons name={show ? "eye-off-outline" : "eye-outline"} size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Register Button */}
+            <TouchableOpacity
+              onPress={handleRegister}
+              disabled={loading}
+              className="mt-2 items-center rounded-xl py-4"
+              style={{ backgroundColor: "#EF4444", opacity: loading ? 0.7 : 1 }}
+            >
+              <Text className="text-base font-bold text-white">
+                {loading ? "Creating account…" : "Create Account"}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Login link */}
+            <View className="flex-row items-center justify-center gap-x-1">
+              <Text style={{ color: "#9CA3AF" }}>Already have an account?</Text>
+              <TouchableOpacity onPress={() => router.replace("/login")}>
+                <Text style={{ color: "#EF4444" }} className="font-semibold">
+                  Login
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>

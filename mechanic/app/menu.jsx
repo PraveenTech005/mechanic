@@ -1,49 +1,98 @@
 import { View, Text, TouchableOpacity } from "react-native";
-import { Entypo, FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { Entypo, FontAwesome, MaterialIcons, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import Toast from "react-native-toast-message";
+import { useCart } from "../context/CartContext";
 
 const Menu = () => {
+  const { cartCount } = useCart();
+
   return (
-    <SafeAreaView className="flex-1">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: "#111827" }}>
+      {/* Close */}
       <TouchableOpacity
-        className="flex flex-row justify-end"
+        className="flex flex-row justify-end px-4 py-2"
         onPress={() => router.back()}
       >
-        <Entypo name="cross" size={40} className="p-5" />
+        <Entypo name="cross" size={36} color="white" />
       </TouchableOpacity>
-      <View className="flex-1 justify-center gap-5 p-5">
+
+      <View className="flex-1 justify-center gap-4 px-5">
         <TouchableOpacity
-          className="flex flex-row items-center gap-x-5 rounded-xl border bg-white p-5"
+          className="flex flex-row items-center gap-x-4 rounded-2xl p-4"
+          style={{ backgroundColor: "#1F2937" }}
           onPress={() => router.replace("profile")}
         >
-          <FontAwesome name="user" className="w-1/12 " size={25} />
-          <Text className="text-lg font-semibold">Profile</Text>
+          <View
+            className="h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: "#374151" }}
+          >
+            <FontAwesome name="user" size={20} color="white" />
+          </View>
+          <Text className="text-lg font-semibold text-white">Profile</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
-          className="flex flex-row items-center gap-x-5 rounded-xl border bg-white p-5"
+          className="flex flex-row items-center gap-x-4 rounded-2xl p-4"
+          style={{ backgroundColor: "#1F2937" }}
+          onPress={() => router.push("/cart")}
+        >
+          <View className="relative">
+            <View
+              className="h-10 w-10 items-center justify-center rounded-full"
+              style={{ backgroundColor: "#374151" }}
+            >
+              <Ionicons name="cart-outline" size={22} color="white" />
+            </View>
+            {cartCount > 0 && (
+              <View
+                className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full"
+                style={{ backgroundColor: "#EF4444" }}
+              >
+                <Text className="text-xs font-bold text-white">{cartCount}</Text>
+              </View>
+            )}
+          </View>
+          <Text className="text-lg font-semibold text-white">Cart</Text>
+          {cartCount > 0 && (
+            <View
+              className="ml-auto rounded-full px-2 py-0.5"
+              style={{ backgroundColor: "#EF4444" }}
+            >
+              <Text className="text-xs font-bold text-white">{cartCount} items</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="flex flex-row items-center gap-x-4 rounded-2xl p-4"
+          style={{ backgroundColor: "#1F2937" }}
           onPress={() => router.replace("about")}
         >
-          <FontAwesome name="info" className="w-1/12 " size={25} />
-          <Text className="text-lg font-semibold">About Us</Text>
+          <View
+            className="h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: "#374151" }}
+          >
+            <FontAwesome name="info" size={20} color="white" />
+          </View>
+          <Text className="text-lg font-semibold text-white">About Us</Text>
         </TouchableOpacity>
       </View>
+
       <TouchableOpacity
-        className="mx-auto mb-5 flex w-5/12 flex-row items-center justify-center gap-x-2 rounded-lg bg-red-500 p-3 px-5"
+        className="mx-5 mb-8 flex flex-row items-center justify-center gap-x-2 rounded-2xl py-4"
+        style={{ backgroundColor: "#EF4444" }}
         onPress={() => {
           AsyncStorage.removeItem("User");
-          Toast.show({
-            type: "success",
-            text1: "Logged Out",
-          });
+          Toast.show({ type: "success", text1: "Logged Out" });
           router.dismiss();
           router.replace("/onboarding");
         }}
       >
-        <MaterialIcons name="logout" size={25} color="white" />
-        <Text className="text-center text-xl font-bold text-white">Logout</Text>
+        <MaterialIcons name="logout" size={22} color="white" />
+        <Text className="text-lg font-bold text-white">Logout</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );

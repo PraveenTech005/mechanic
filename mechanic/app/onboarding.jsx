@@ -1,7 +1,7 @@
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Entypo } from "@expo/vector-icons";
 import mechanic from "../assets/icon.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
@@ -12,33 +12,46 @@ const Onboarding = () => {
       try {
         const storedUser = await AsyncStorage.getItem("User");
         const User = storedUser ? JSON.parse(storedUser) : null;
-
-        if (User?.token) {
-          router.replace("home");
-        }
+        if (User?.token) router.replace("home");
       } catch (error) {
         console.error("Error fetching user:", error);
       }
     };
-
     fetchUser();
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <View
-        className="flex flex-1 items-center justify-center"
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-      >
-        <Image source={mechanic} className="h-48 w-48 rounded-full border-2" />
-        <Text className="mt-10 text-4xl font-semibold uppercase">Mechanic</Text>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: "#111827" }}>
+      <View className="flex flex-1 items-center justify-center gap-y-4 px-8">
+        <View
+          className="mb-2 h-36 w-36 items-center justify-center rounded-full"
+          style={{ backgroundColor: "#1F2937", borderWidth: 3, borderColor: "#EF4444" }}
+        >
+          <Image source={mechanic} className="h-28 w-28 rounded-full" />
+        </View>
+        <Text className="text-5xl font-bold text-white tracking-wide">MechPro</Text>
+        <Text style={{ color: "#9CA3AF" }} className="text-center text-base leading-6">
+          Your one-stop shop for genuine vehicle spare parts & accessories
+        </Text>
+        <View className="mt-2 flex-row gap-x-3">
+          {["🏍️", "🚗", "🔧", "⚙️"].map((icon, i) => (
+            <View
+              key={i}
+              className="h-12 w-12 items-center justify-center rounded-full"
+              style={{ backgroundColor: "#1F2937" }}
+            >
+              <Text className="text-2xl">{icon}</Text>
+            </View>
+          ))}
+        </View>
       </View>
       <TouchableOpacity
-        className="mx-auto mb-20 flex flex-row space-x-5 rounded-xl bg-cyan-600 p-4 px-6"
+        className="mx-6 mb-12 flex-row items-center justify-center gap-x-3 rounded-2xl py-4"
+        style={{ backgroundColor: "#EF4444" }}
         onPress={() => router.push("login")}
       >
-        <Text className="font-semibold text-white">Get Started</Text>
-        <AntDesign name="right" size={20} color="white" className="ml-1" />
+        <Text className="text-lg font-bold text-white">Get Started</Text>
+        <Entypo name="chevron-right" size={20} color="white" />
       </TouchableOpacity>
     </SafeAreaView>
   );

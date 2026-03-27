@@ -14,99 +14,118 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // eslint-disable-next-line import/no-unresolved
 import { API_SERVER } from "@env";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 const Login = () => {
-  const [user, setUser] = useState({
-    email: "",
-    password: "",
-  });
+  const [user, setUser] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [show, setShow] = useState(false);
 
-  const validatePassword = (password) => {
-    return password.length > 3;
-  };
-
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const validatePassword = (p) => p.length > 3;
+  const validateEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
   const handleLogin = async () => {
+    if (!user.email || !user.password)
+      return Toast.show({ type: "info", text1: "Fill all fields" });
+    if (!validateEmail(user.email) || !validatePassword(user.password))
+      return Toast.show({ type: "info", text1: "Invalid email or password format" });
+
     try {
-      if (user.email === "" || user.password === "")
-        return Toast.show({
-          type: "info",
-          text1: "Invalid Data",
-          text2: "Fill all the fields",
-        });
-
-      const validEmail = validateEmail(user.email);
-      const validPassword = validatePassword(user.password);
-
-      if (!validEmail || !validPassword)
-        return Toast.show({
-          type: "info",
-          text1: "Invalid Data",
-          text2: "Invalid Format",
-        });
-
+      setLoading(true);
       const res = await axios.post(`${API_SERVER}/user/login`, user);
-      Toast.show({
-        type: "success",
-        text1: res.data.message,
-      });
-      setUser({
-        email: "",
-        password: "",
-      });
       await AsyncStorage.setItem("User", JSON.stringify(res.data.user));
-      router.dismiss();
-      return router.replace("/home");
+      Toast.show({ type: "success", text1: res.data.message || "Logged in!" });
+      setUser({ email: "", password: "" });
+      router.replace("/home");
     } catch (error) {
-      console.log(error);
-      return Toast.show({
+      Toast.show({
         type: "error",
-        text1: error?.response?.data?.message,
-        text2: "Something Went Wrong",
+        text1: error?.response?.data?.message || "Login failed",
+        text2: "Check credentials and try again",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-200">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: "#111827" }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
-        <View className="flex flex-1 items-center justify-center">
-          <Text className="mb-10 text-2xl font-semibold text-black">Login</Text>
-          <View className="flex w-10/12 gap-y-2 rounded-xl border bg-white p-5">
-            <Text>Email</Text>
-            <TextInput
-              value={user.email}
-              onChangeText={(text) => setUser({ ...user, email: text })}
-              className="rounded-xl border p-2"
-            />
-            <Text>Password</Text>
-            <TextInput
-              value={user.password}
-              onChangeText={(text) => setUser({ ...user, password: text })}
-              className="rounded-xl border p-2"
-            />
-            <TouchableOpacity
-              className="mx-auto mt-3 flex w-6/12 rounded-lg bg-blue-700 p-2"
-              onPress={handleLogin}
-            >
-              <Text className="text-center text-lg text-white">Login</Text>
-            </TouchableOpacity>
-            <View className="flex flex-row items-center justify-center">
-              <Text>Don&apos;t have an account?</Text>
-              <Text
-                className="p-2 pl-2 text-lg text-blue-600 underline"
-                onPress={() => router.replace("/signup")}
-              >
-                Signup
+        <View className="flex flex-1 items-center justify-center px-6">
+          {/* Heading */}
+          <View className="mb-8 items-center">
+            <Text className="text-4xl font-bold text-white mb-1">Welcome Back</Text>
+            <Text style={{ color: "#9CA3AF" }} className="text-sm">
+              Sign in to continue to MechPro
+            </Text>
+          </View>
+
+          {/* Card */}
+          <View
+            className="w-full rounded-2xl p-6 gap-y-4"
+            style={{ backgroundColor: "#1F2937" }}
+          >
+            {/* Email */}
+            <View>
+              <Text style={{ color: "#9CA3AF" }} className="text-xs mb-2 font-semibold uppercase">
+                Email
               </Text>
+              <TextInput
+                value={user.email}
+                onChangeText={(t) => setUser({ ...user, email: t })}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholder="you@example.com"
+                placeholderTextColor="#6B7280"
+                className="rounded-xl px-4 py-3 text-white"
+                style={{ backgroundColor: "#374151" }}
+              />
+            </View>
+
+            {/* Password */}
+            <View>
+              <Text style={{ color: "#9CA3AF" }} className="text-xs mb-2 font-semibold uppercase">
+                Password
+              </Text>
+              <View className="flex-row items-center rounded-xl px-4" style={{ backgroundColor: "#374151" }}>
+                <TextInput
+                  value={user.password}
+                  onChangeText={(t) => setUser({ ...user, password: t })}
+                  secureTextEntry={!show}
+                  placeholder="••••••••"
+                  placeholderTextColor="#6B7280"
+                  className="flex-1 py-3 text-white"
+                />
+                <TouchableOpacity onPress={() => setShow(!show)}>
+                  <Ionicons name={show ? "eye-off-outline" : "eye-outline"} size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Login Button */}
+            <TouchableOpacity
+              onPress={handleLogin}
+              disabled={loading}
+              className="mt-2 items-center rounded-xl py-4"
+              style={{ backgroundColor: "#EF4444", opacity: loading ? 0.7 : 1 }}
+            >
+              <Text className="text-base font-bold text-white">
+                {loading ? "Signing in…" : "Login"}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Signup link */}
+            <View className="flex-row items-center justify-center gap-x-1">
+              <Text style={{ color: "#9CA3AF" }}>Don't have an account?</Text>
+              <TouchableOpacity onPress={() => router.replace("/signup")}>
+                <Text style={{ color: "#EF4444" }} className="font-semibold">
+                  Sign up
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>

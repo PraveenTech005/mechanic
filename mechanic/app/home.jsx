@@ -1,202 +1,372 @@
 import {
   Image,
+  Modal,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  FlatList,
 } from "react-native";
 import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import products from "../seed";
-import { Entypo, Feather } from "@expo/vector-icons";
+import products, { vehicleCatalog } from "../seed";
+import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useCart } from "../context/CartContext";
+
+const CATEGORIES = [
+  { key: "bike", label: "Bike Parts", icon: "motorbike" },
+  { key: "car", label: "Car Parts", icon: "car" },
+  { key: "engine", label: "Engine", icon: "engine" },
+  { key: "accessories", label: "Accessories", icon: "shopping" },
+];
+
+const WHY_US = [
+  { logo: "✅", head: "Genuine Parts", desc: "100% original spare parts" },
+  { logo: "🛒", head: "Easy Shopping", desc: "Smooth & Simple UI" },
+  { logo: "🔐", head: "Secure Login", desc: "Safe Authentication" },
+  { logo: "⚡", head: "Fast Delivery", desc: "Quick order processing" },
+];
 
 const Home = () => {
   const [user, setUser] = useState(null);
   const [search, setSearch] = useState("");
+  const [brandModal, setBrandModal] = useState(false);
+  const [modelModal, setModelModal] = useState(false);
+  const { cartCount, selectedVehicle, setSelectedVehicle } = useCart();
 
-  const featured = [
-    products.bike[0],
-    products.car[0],
-    products.engine[0],
-    products.accessories[0],
-  ];
-  const whychooseus = [
-    {
-      logo: "✅",
-      head: "Genuine Products",
-      desc: "100% original spare parts",
-    },
-    {
-      logo: "🛒",
-      head: "Easy Shopping",
-      desc: "Smooth & Simple UI",
-    },
-    {
-      logo: "🔐",
-      head: "Secure Login",
-      desc: "Safe Authentication",
-    },
-    {
-      logo: "⏱️",
-      head: "Time Saving",
-      desc: "Fast & Easy Orders",
-    },
-  ];
+  const brands = Object.keys(vehicleCatalog);
+  const models = selectedVehicle.brand ? vehicleCatalog[selectedVehicle.brand] : [];
+
+  const featured = products.slice(0, 4);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const storedUser = await AsyncStorage.getItem("User");
         const User = storedUser ? JSON.parse(storedUser) : null;
-
-        if (!User?.token) {
-          router.replace("/onboarding");
-        }
-
+        if (!User?.token) router.replace("/onboarding");
         setUser(User);
-      } catch (error) {
-        console.error("Error fetching user:", error);
+      } catch (e) {
+        console.error(e);
       }
     };
-
     fetchUser();
   }, []);
 
+  const isCompatible = (product) => {
+    if (!selectedVehicle.brand || !selectedVehicle.model) return false;
+    return product.vehicle.some(
+      (v) => v.name === selectedVehicle.brand && v.model === selectedVehicle.model,
+    );
+  };
+
+  const handleFindParts = () => {
+    router.push({
+      pathname: "/products",
+      params: {
+        brand: selectedVehicle.brand,
+        model: selectedVehicle.model,
+        category: "",
+      },
+    });
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-blue-100">
-      <View className="flex flex-row items-center justify-between p-5">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: "#111827" }}>
+      {/* ── Header ── */}
+      <View className="flex flex-row items-center justify-between px-5 pt-3 pb-2">
         <View>
-          <Text className="text-xl">Welcome Back,</Text>
-          <Text className="text-2xl font-bold">{user?.name} 👋</Text>
+          <Text style={{ color: "#9CA3AF" }} className="text-sm">Welcome back,</Text>
+          <Text className="text-xl font-bold text-white">{user?.name ?? "Rider"} 👋</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push("/menu")}>
-          <Entypo name="menu" size={40} />
-        </TouchableOpacity>
+        <View className="flex flex-row items-center gap-x-4">
+          <TouchableOpacity
+            onPress={() => router.push("/cart")}
+            className="relative"
+          >
+            <Ionicons name="cart-outline" size={28} color="white" />
+            {cartCount > 0 && (
+              <View
+                className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full"
+                style={{ backgroundColor: "#EF4444" }}
+              >
+                <Text className="text-xs font-bold text-white">{cartCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/menu")}>
+            <Ionicons name="menu-outline" size={32} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
-      <View className="flex flex-row items-center justify-evenly p-2 px-4">
-        <TextInput
-          value={search}
-          onChangeText={(text) => setSearch(text)}
-          keyboardType="web-search"
-          className="w-10/12 rounded-xl border bg-white px-2"
-          placeholder="Search for Spares"
-        />
+
+      {/* ── Search Bar ── */}
+      <View className="flex flex-row items-center gap-x-2 px-5 py-2">
+        <View
+          className="flex-1 flex-row items-center rounded-xl px-3"
+          style={{ backgroundColor: "#1F2937" }}
+        >
+          <Feather name="search" size={18} color="#9CA3AF" />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search parts, brands…"
+            placeholderTextColor="#6B7280"
+            className="ml-2 flex-1 py-3 text-white"
+            returnKeyType="search"
+            onSubmitEditing={() => {
+              if (search.trim()) {
+                router.push({ pathname: "/searchPage", params: { name: search, type: "search" } });
+                setSearch("");
+              }
+            }}
+          />
+        </View>
         <TouchableOpacity
-          className="rounded-lg bg-green-700 p-2"
+          style={{ backgroundColor: "#EF4444" }}
+          className="rounded-xl p-3"
           onPress={() => {
-            if (search) {
+            if (search.trim()) {
+              router.push({ pathname: "/searchPage", params: { name: search, type: "search" } });
               setSearch("");
-              router.push({
-                pathname: "/searchPage",
-                params: { name: search, type: "search" },
-              });
             }
           }}
         >
-          <Feather name="search" size={25} color="white" />
+          <Feather name="search" size={20} color="white" />
         </TouchableOpacity>
       </View>
-      <ScrollView className="py-1">
-        <View className="mx-auto mt-5 w-10/12 gap-y-5 rounded-xl bg-white p-5">
-          <Text className="mx-auto w-10/12 text-center text-xl font-bold">
-            Buy Genuine Mechanic Tools & Spare Parts
+
+      <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+        {/* ── Vehicle Selector Hero ── */}
+        <View
+          className="mx-4 mt-3 rounded-2xl p-5"
+          style={{ backgroundColor: "#1F2937" }}
+        >
+          <Text className="mb-1 text-lg font-bold text-white">Find Parts for Your Vehicle</Text>
+          <Text style={{ color: "#9CA3AF" }} className="mb-4 text-sm">
+            Select your vehicle to see compatible parts
           </Text>
-          <Text className="text-center text-neutral-700">
-            Quality products for bikes, cars, and workshops
-          </Text>
+
+          {/* Brand Picker */}
           <TouchableOpacity
-            className="mx-auto w-6/12 rounded-lg bg-green-700 p-3"
-            onPress={() => router.push("/products")}
+            onPress={() => setBrandModal(true)}
+            className="mb-3 flex-row items-center justify-between rounded-xl px-4 py-3"
+            style={{ backgroundColor: "#374151" }}
           >
-            <Text className="text-center font-bold text-white">Shop Now</Text>
+            <View className="flex-row items-center gap-x-2">
+              <MaterialCommunityIcons name="car-side" size={18} color="#EF4444" />
+              <Text className={selectedVehicle.brand ? "text-white font-semibold" : "text-gray-400"}>
+                {selectedVehicle.brand || "Select Brand"}
+              </Text>
+            </View>
+            <Ionicons name="chevron-down" size={18} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          {/* Model Picker */}
+          <TouchableOpacity
+            onPress={() => selectedVehicle.brand && setModelModal(true)}
+            className="mb-4 flex-row items-center justify-between rounded-xl px-4 py-3"
+            style={{ backgroundColor: "#374151", opacity: selectedVehicle.brand ? 1 : 0.5 }}
+          >
+            <View className="flex-row items-center gap-x-2">
+              <MaterialCommunityIcons name="motorbike" size={18} color="#3B82F6" />
+              <Text className={selectedVehicle.model ? "text-white font-semibold" : "text-gray-400"}>
+                {selectedVehicle.model || "Select Model"}
+              </Text>
+            </View>
+            <Ionicons name="chevron-down" size={18} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleFindParts}
+            className="items-center rounded-xl py-3"
+            style={{ backgroundColor: "#EF4444" }}
+          >
+            <Text className="text-base font-bold text-white">
+              {selectedVehicle.brand && selectedVehicle.model
+                ? `Find Parts for ${selectedVehicle.brand} ${selectedVehicle.model}`
+                : "Browse All Parts"}
+            </Text>
           </TouchableOpacity>
         </View>
-        <View className="mx-auto mt-5 w-10/12 rounded-xl bg-white">
-          <Text className="p-5 text-center text-xl font-bold">Categories</Text>
-          <View className="flex flex-row flex-wrap justify-between px-4">
-            {["Bike Parts", "Car Parts", "Engine Tools", "Accessories"].map(
-              (label, index) => (
-                <TouchableOpacity
-                  key={index}
-                  className="mb-4 w-[48%] rounded-md bg-green-200 p-3"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/searchPage",
-                      params: {
-                        name: label.split(" ")[0],
-                        type: "category",
-                      },
-                    })
-                  }
-                >
-                  <Text className="text-center font-bold">{label}</Text>
-                </TouchableOpacity>
-              ),
-            )}
-          </View>
+
+        {/* ── Categories ── */}
+        <Text className="mx-4 mt-5 mb-3 text-lg font-bold text-white">Categories</Text>
+        <View className="flex-row flex-wrap px-4 gap-3">
+          {CATEGORIES.map((cat) => (
+            <TouchableOpacity
+              key={cat.key}
+              onPress={() =>
+                router.push({
+                  pathname: "/products",
+                  params: { brand: "", model: "", category: cat.key },
+                })
+              }
+              className="w-[47%] flex-row items-center gap-x-3 rounded-xl px-4 py-4"
+              style={{ backgroundColor: "#1F2937" }}
+            >
+              <MaterialCommunityIcons name={cat.icon} size={22} color="#EF4444" />
+              <Text className="font-semibold text-white">{cat.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
-        <View className="mx-auto mt-5 w-10/12 rounded-xl bg-white">
-          <Text className="p-5 text-center text-xl font-bold">
-            Featured Products
-          </Text>
-          <View className="mb-5 flex w-full flex-col gap-5">
-            {featured.map((item, index) => (
-              <View
-                key={index}
-                className="mx-auto flex w-10/12 gap-3 rounded-lg border p-5"
+
+        {/* ── Featured Products ── */}
+        <Text className="mx-4 mt-5 mb-3 text-lg font-bold text-white">Featured Products</Text>
+        <View className="px-4 gap-y-3 mb-4">
+          {featured.map((item) => {
+            const compatible = isCompatible(item);
+            return (
+              <TouchableOpacity
+                key={item.id}
+                onPress={() => router.push({ pathname: "/productDetail", params: { id: item.id } })}
+                className="flex-row items-center rounded-2xl overflow-hidden"
+                style={{ backgroundColor: "#1F2937" }}
               >
                 <Image
                   source={item.image}
-                  className="h-48 w-full"
-                  resizeMode="contain"
+                  className="h-24 w-24"
+                  resizeMode="cover"
                 />
-                <Text className="text-center text-lg font-semibold">
-                  {item.name}
-                </Text>
-                <Text className="text-neutral-500">
-                  Category: {item.category}
-                </Text>
-                <Text className="text-lg font-bold">
-                  Price: ₹{item.price}.00
-                </Text>
-                <TouchableOpacity className="rounded-lg bg-green-700 p-3">
-                  <Text className="text-center font-bold text-white ">
-                    Add to Cart
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-          <TouchableOpacity
-            className="mx-auto mb-5 w-6/12 rounded-lg border p-3"
-            onPress={() => router.push("/products")}
-          >
-            <Text className="text-center font-bold">Show More</Text>
-          </TouchableOpacity>
-        </View>
-        <View className="mx-auto mb-5 mt-5 w-10/12 rounded-xl bg-white">
-          <Text className="p-5 text-center text-xl font-bold">
-            Why Choose MechPro?
-          </Text>
-          <View className="mx-auto mb-3 w-10/12 gap-3">
-            {whychooseus.map((item, index) => (
-              <View
-                key={index}
-                className="flex flex-row items-center justify-evenly rounded-lg bg-green-200 p-3"
-              >
-                <Text className="w-3/12 text-center text-3xl">{item.logo}</Text>
-                <View className="w-8/12 gap-3">
-                  <Text>{item.head}</Text>
-                  <Text>{item.desc}</Text>
+                <View className="flex-1 px-3 py-3">
+                  {compatible && (
+                    <View
+                      className="self-start rounded-full px-2 py-0.5 mb-1"
+                      style={{ backgroundColor: "#064E3B" }}
+                    >
+                      <Text style={{ color: "#34D399" }} className="text-xs font-semibold">
+                        ✓ Compatible
+                      </Text>
+                    </View>
+                  )}
+                  <Text className="text-white font-semibold" numberOfLines={1}>{item.name}</Text>
+                  <Text style={{ color: "#9CA3AF" }} className="text-xs capitalize mb-1">{item.category}</Text>
+                  <Text style={{ color: "#EF4444" }} className="font-bold">₹{item.price.toLocaleString()}</Text>
                 </View>
+                <View className="px-3">
+                  <View
+                    className="rounded-full p-2"
+                    style={{ backgroundColor: item.stock ? "#EF444420" : "#37415120" }}
+                  >
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color={item.stock ? "#EF4444" : "#6B7280"}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <TouchableOpacity
+          onPress={() => router.push("/products")}
+          className="mx-4 mb-4 items-center rounded-xl border py-3"
+          style={{ borderColor: "#374151" }}
+        >
+          <Text style={{ color: "#9CA3AF" }} className="font-semibold">View All Products →</Text>
+        </TouchableOpacity>
+
+        {/* ── Why Choose Us ── */}
+        <Text className="mx-4 mt-2 mb-3 text-lg font-bold text-white">Why MechPro?</Text>
+        <View className="mx-4 mb-8 gap-y-3">
+          {WHY_US.map((item, i) => (
+            <View
+              key={i}
+              className="flex-row items-center gap-x-4 rounded-xl px-4 py-3"
+              style={{ backgroundColor: "#1F2937" }}
+            >
+              <Text className="text-2xl">{item.logo}</Text>
+              <View>
+                <Text className="font-bold text-white">{item.head}</Text>
+                <Text style={{ color: "#9CA3AF" }} className="text-sm">{item.desc}</Text>
               </View>
-            ))}
-          </View>
+            </View>
+          ))}
         </View>
       </ScrollView>
+
+      {/* ── Brand Modal ── */}
+      <Modal visible={brandModal} transparent animationType="slide">
+        <TouchableOpacity
+          className="flex-1"
+          style={{ backgroundColor: "#00000080" }}
+          activeOpacity={1}
+          onPress={() => setBrandModal(false)}
+        >
+          <View
+            className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-5"
+            style={{ backgroundColor: "#1F2937" }}
+          >
+            <Text className="mb-4 text-center text-lg font-bold text-white">Select Brand</Text>
+            <FlatList
+              data={brands}
+              keyExtractor={(b) => b}
+              renderItem={({ item: brand }) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedVehicle({ brand, model: "" });
+                    setBrandModal(false);
+                  }}
+                  className="flex-row items-center justify-between rounded-xl px-4 py-4 mb-2"
+                  style={{
+                    backgroundColor: selectedVehicle.brand === brand ? "#374151" : "#111827",
+                  }}
+                >
+                  <Text className="text-white font-semibold text-base">{brand}</Text>
+                  {selectedVehicle.brand === brand && (
+                    <Ionicons name="checkmark-circle" size={20} color="#EF4444" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Model Modal ── */}
+      <Modal visible={modelModal} transparent animationType="slide">
+        <TouchableOpacity
+          className="flex-1"
+          style={{ backgroundColor: "#00000080" }}
+          activeOpacity={1}
+          onPress={() => setModelModal(false)}
+        >
+          <View
+            className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-5"
+            style={{ backgroundColor: "#1F2937" }}
+          >
+            <Text className="mb-4 text-center text-lg font-bold text-white">
+              Select {selectedVehicle.brand} Model
+            </Text>
+            <FlatList
+              data={models}
+              keyExtractor={(m) => m}
+              renderItem={({ item: model }) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedVehicle((v) => ({ ...v, model }));
+                    setModelModal(false);
+                  }}
+                  className="flex-row items-center justify-between rounded-xl px-4 py-4 mb-2"
+                  style={{
+                    backgroundColor: selectedVehicle.model === model ? "#374151" : "#111827",
+                  }}
+                >
+                  <Text className="text-white font-semibold text-base">{model}</Text>
+                  {selectedVehicle.model === model && (
+                    <Ionicons name="checkmark-circle" size={20} color="#EF4444" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
